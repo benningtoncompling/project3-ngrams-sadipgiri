@@ -1,0 +1,22 @@
+Generated Unigram, Bigram and Trigram Sentences 
+
+Unigram Generated Sentences 
+<s> all gentleman affectionate much home pudding light  mr. as son the </s>
+<s> in n't but , ’ having i ’ , . was as he may along . absorbed </s>
+<s> nothing from . exciting going seen very : his me ; , ? </s>
+<s> weevle cabin , , ashore have my , , s time bear </s>
+<s> , world who at bright blade in squarely 'hold . shrine cloak serve drank , i his think it a to mr. supper the light ’ , name ’ pleased the head and uncongenial year . knew ” bumble the already already the men that , </s>
+
+Bigram Generated Sentences 
+<s> `` i am , `` there by the sweetest a scheme that ought to him , pluming his usher , love . </s>
+<s> i see father ’ ‘ come over . </s>
+<s> we always had not the tribunal , captain boldwig . </s>
+<s> and tell me , biddy. ” says he kissed it is , if he is sensible woman. ” pursued miss squeers , looking at the ground , and sneaked into a violent fit too ; i came to set forth that far from the old -- apoplexy , how long live ? ’ interposed mr. bucket does ’ ‘ my sharp and deadly coldness and put off to be safe anyveres , as if i made intricate pattern and his arms , though my heart by-and-bye , by perpetuating the patrons -- yes , with him , but always recollect him to-night. ’ ‘ how my honour. ’ ‘ don ’ s so , until the pressing on a little archway , after them to-morrow. ’ said mrs. bumble , marvellous as long so openly . </s>
+<s> women , the golden characters . </s>
+
+Trigram Generated Sentences 
+<s> ‘ permit me , when he was out , till i come to see him now , buy me , nobody was more banging and more like two pictures ( where i saw it no disgrace in the course of my own account. ’ that ‘ ere liver complaint as we say ? </s>
+<s> it was done for drizzle -- who was exceedingly great , sir ? ’ i felt it necessary to make the meagreness of frenchmen an english gentleman in whom fanny was very cheerful ; so quickly that this is not what they all lounged , and will never quarrel with our property for us in myriads . </s>
+<s> is it -- no , sir , ’ said mr. woodcourt 's confidence for how short my life lie buried there too ; for , without love , your majesty . </s>
+<s> go along with us at present , '' said the boy asked , in her time been too severe a trial -- and got through and kept on muttering to himself and his trust ; whatever they call him ; ‘ the fact is , it is ! ” “ then , for the first broken words to express anything but politeness and attention on his sensitive head . </s>
+<s> ‘ it is possible ) at his employer ’ s for me . </s>

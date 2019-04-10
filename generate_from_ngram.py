@@ -39,6 +39,8 @@ def unigenerate_gram(detail_sentences):
         temp_prob = float(i.split()[1])
         counter += temp_prob
         if counter > random_num:
+            if i.split()[3] == '<s>':
+                return ''
             return i.split()[3]
     return
 

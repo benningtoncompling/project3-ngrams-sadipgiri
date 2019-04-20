@@ -6,6 +6,7 @@
 
 from unigrams import unigrams_counts_dictionary
 from trigrams import trigrams_makeup
+from math import log10
 
 input_file='dickens_model.txt'
 
@@ -15,6 +16,9 @@ with open(input_file,'r') as in_file:
 unigram_index = sentences.index('\\1-grams:') 
 bigram_index = sentences.index('\\2-grams:')
 trigram_index = sentences.index('\\3-grams:')
+
+total_number_of_words = 0
+total_number_of_unknown_words = 0
 
 def create_bigram_dict(sentences):
     '''
@@ -52,6 +56,10 @@ def create_unigram_dict(sentences):
         unigram_dict[temp_list[3]] = temp_list[2]
     return unigram_dict
 
+unigram_dict = create_unigram_dict(sentences)
+bigram_dict = create_bigram_dict(sentences)
+trigram_dict = create_trigram_dict(sentences)
+
 def calculate_perplexity(lambda1, lambda2, lambda3, test_file='dickens_test.txt'):
     '''
         for each sentence in the test data file:
@@ -65,14 +73,9 @@ def calculate_perplexity(lambda1, lambda2, lambda3, test_file='dickens_test.txt'
         divide the negative sum of the log-probs by the total number of words added to the number of sentences minus the number of unknown words.
         Raise this value to the power of 10
     '''
-
-    unigram_dict = create_unigram_dict(sentences)
-    bigram_dict = create_bigram_dict(sentences)
-    trigram_dict = create_trigram_dict(sentences)
-
     total_words = 0
     unknown_words = 0
-    total_log_prob = 0
+    total_log_prob = 1
     
     with open(test_file, 'r') as test_file:
         test_sentences = test_file.read().splitlines()
@@ -80,53 +83,57 @@ def calculate_perplexity(lambda1, lambda2, lambda3, test_file='dickens_test.txt'
     total_num_sentences = len(test_sentences)
 
     for temp_sentence in test_sentences:
-        temp_sentence_list = temp_sentence.split() + ['</s>']
-        total_words += len(temp_sentence_list)
-        for word in temp_sentence_list:
-            if word not in unigram_dict:
-                unknown_words += 1
-        temp_trigrams = trigrams_makeup(temp_sentence_list)
-        total_log_prob += mult([interpolate_log_prob(i,lambda1,lambda2,lambda3, unigram_dict,bigram_dict,trigram_dict,len(unigram_dict)) for i in temp_trigrams])
-    
+        total_words += len(temp_sentence.split())
+        unknown_words += helper_for_unknown_words(temp_sentence, unigram_dict)
+        total_log_prob *= interpolate_log_prob_sentence(temp_sentence, lambda1, lambda2, lambda3)
+    # error: what to do? when there's log error due to negative value
+    #total_log_prob = log10(total_log_prob) # finally logging at last since log(a) + log(b) = log(a*b)
     return 10**((-total_log_prob)/(total_words + total_num_sentences - unknown_words))
 
-def interpolate_log_prob(trigram, lambda1, lambda2, lambda3, unigram_dict, bigram_dict, trigram_dict, total_num_words):
+def interpolate_log_prob_sentence(sentence, lambda1, lambda2, lambda3, unigram_dict=unigram_dict, bigram_dict=bigram_dict, trigram_dict=trigram_dict):
     '''
-        Task: calculate interpolate log prob for one trigram!
-        Approach:
-            given: one trigram tuple
-            interpolate_log_prob =  l1*P(Wn) + l2*P(Wn|Wn-1) + l3*P(Wn|Wn-2 Wn-1)
+        Task: calculate interpolate log prob for a sentence
     '''
-    tnminus2, tnminus1, tn = trigram
-    if tn in unigram_dict:
-        prob_1 = unigram_dict[tn]
-    else:
-        return 0
-    if tnminus1 in bigram_dict:
-        prob_2 = float(bigram_dict[tnminus1][tn])
-    else:
-        return 0
-    if ' '.join([tnminus2, tnminus1]) in trigram_dict:
-        prob_3 = float(trigram_dict[' '.join([tnminus2, tnminus1])][tn])
-    else:
-        return 0
-    return lambda1*prob_1 + lambda2*prob_2 + lambda3*prob_3
+    words_in_sentence = ['<s>'] + sentence.lower().split() + ['</s>']
+    trigrams_list = trigrams_makeup(words_in_sentence)
+    temp1_prob = 0
+    temp2_prob = 0
+    
+    # at first need to find for first <s> and first word interpolate log prob i.e. log(lambda1*p(w1) + lambda2*p(w1|<s>) + lambda3*p(w1|<s>))
+    if words_in_sentence[1] in unigram_dict:
+        temp1_prob = lambda1*float(unigram_dict['<s>'])
+        if words_in_sentence[1] in bigram_dict['<s>']:
+            temp2_prob = (lambda2 + lambda3)*float(bigram_dict['<s>'][words_in_sentence[1]])
+    temp_prob = temp1_prob + temp2_prob
 
-def mult(lst):
+    for i in trigrams_list:
+        temp_lamdba1_prob = 0
+        temp_lamdba2_prob = 0
+        temp_lamdba3_prob = 0
+        if i[2] in unigram_dict:
+            temp_lamdba1_prob = float(unigram_dict[i[2]]) 
+            if i[1] in unigram_dict and i[1] in bigram_dict and i[2] in bigram_dict[i[1]]:
+                temp_lamdba2_prob = float(bigram_dict[i[1]][i[2]])
+                if i[0] in unigram_dict and '{0} {1}'.format(i[0],i[1]) in trigram_dict and i[2] in trigram_dict['{0} {1}'.format(i[0],i[1])]:
+                    temp_lamdba3_prob = float(trigram_dict['{0} {1}'.format(i[0],i[1])][i[2]])
+        temp_prob *= (temp_lamdba1_prob + temp_lamdba2_prob + temp_lamdba3_prob)
+    return temp_prob
+    
+def helper_for_unknown_words(sentence, dct):
     '''
-        very simple helper function to multiply all probabilities in the list
+        Task: to calculate # of unknown words
     '''
-    a = 1.0
-    for i in lst:
-        a *= float(i)
-    return a
+    num = 0
+    for i in sentence.lower().split():
+        if i not in dct:
+            num += 1
+    return num
 
 if __name__ == '__main__':
-    print(calculate_perplexity(0.1,0.2,0.3))
-    #print(interpolate_log_prob())
-    #c=0
-    #t = create_bigram_dict(sentences)
-    #print(t.keys()[:5])
-    #print(t.values()[:5])
-    #print(t)
+    # print(trigrams_makeup(['a','b']))
+    # sentence = 'There are not many people—and as it is desirable that a story-teller and a story-reader should establish a mutual understanding as soon as possible , I beg it to be noticed that I confine this observation neither to young people nor to little people , but extend it to all conditions of people : little and big , young and old : yet growing up , or already growing down again—there are not , I say , many people who would care to sleep in a church .'
+    # sentence1 = 'But it applies to Night .'
+    #print(interpolate_log_prob_sentence(sentence1.lower(), 0.1,0.1,0.8))
+    #print(helper_for_unknown_words(sentence, unigram_dict))
+    print(calculate_perplexity(0.1,0.1,0.8,test_file='dickens_test.txt'))
     

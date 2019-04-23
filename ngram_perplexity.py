@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
     ngram_perplexity python3 program to calculate perplexity of the model comparing with the given test file.
     Author: Sadip Giri (sadipgiri@bennington.edu)
@@ -7,8 +9,20 @@
 from unigrams import unigrams_counts_dictionary
 from trigrams import trigrams_makeup
 from math import log10
+import sys
 
-input_file='dickens_model.txt'
+# according to Justin's definition of executing the perplexity
+args_list = sys.argv
+input_file = args_list[1]
+lambda1 = float(args_list[2])
+lambda2 = float(args_list[3])
+lambda3 = float(args_list[4])
+test_file = args_list[5]
+output_file = args_list[6]
+
+
+#input_file='dickens_model.txt'
+#test_file='dickens_text.txt'
 
 with open(input_file,'r') as in_file:
     sentences = in_file.read().splitlines()
@@ -28,9 +42,9 @@ def create_bigram_dict(sentences):
     for i in sentences[bigram_index+1: trigram_index - 1]:
         temp_list = i.split()
         if temp_list[3] not in bigram_dict:
-            bigram_dict[temp_list[3]] = {temp_list[4]: temp_list[2]}
+            bigram_dict[temp_list[3]] = {temp_list[4]: temp_list[1]}
         else:
-            bigram_dict[temp_list[3]][temp_list[4]] = temp_list[2]
+            bigram_dict[temp_list[3]][temp_list[4]] = temp_list[1]
     return bigram_dict
 
 def create_trigram_dict(sentences):
@@ -41,9 +55,9 @@ def create_trigram_dict(sentences):
     for i in sentences[trigram_index+1: len(sentences) - 2]:
         temp_list = i.split()
         if ' '.join(temp_list[3:5]) not in trigram_dict:
-            trigram_dict[' '.join(temp_list[3:5])] = {temp_list[5]: temp_list[2]}
+            trigram_dict[' '.join(temp_list[3:5])] = {temp_list[5]: temp_list[1]}
         else:
-            trigram_dict[' '.join(temp_list[3:5])][temp_list[5]] = temp_list[2]
+            trigram_dict[' '.join(temp_list[3:5])][temp_list[5]] = temp_list[1]
     return trigram_dict
 
 def create_unigram_dict(sentences):
@@ -53,14 +67,14 @@ def create_unigram_dict(sentences):
     unigram_dict = {}
     for i in sentences[unigram_index+1: bigram_index - 1]:
         temp_list = i.split()
-        unigram_dict[temp_list[3]] = temp_list[2]
+        unigram_dict[temp_list[3]] = temp_list[1]
     return unigram_dict
 
 unigram_dict = create_unigram_dict(sentences)
 bigram_dict = create_bigram_dict(sentences)
 trigram_dict = create_trigram_dict(sentences)
 
-def calculate_perplexity(lambda1, lambda2, lambda3, test_file='dickens_test.txt'):
+def calculate_perplexity(lambda1, lambda2, lambda3, test_file):
     '''
         for each sentence in the test data file:
             add the number of words in the sentence (excluding <s> and </s>) to the total number of words
@@ -85,9 +99,7 @@ def calculate_perplexity(lambda1, lambda2, lambda3, test_file='dickens_test.txt'
     for temp_sentence in test_sentences:
         total_words += len(temp_sentence.split())
         unknown_words += helper_for_unknown_words(temp_sentence, unigram_dict)
-        total_log_prob *= interpolate_log_prob_sentence(temp_sentence, lambda1, lambda2, lambda3)
-    # error: what to do? when there's log error due to negative value
-    #total_log_prob = log10(total_log_prob) # finally logging at last since log(a) + log(b) = log(a*b)
+        total_log_prob += interpolate_log_prob_sentence(temp_sentence, lambda1, lambda2, lambda3)
     return 10**((-total_log_prob)/(total_words + total_num_sentences - unknown_words))
 
 def interpolate_log_prob_sentence(sentence, lambda1, lambda2, lambda3, unigram_dict=unigram_dict, bigram_dict=bigram_dict, trigram_dict=trigram_dict):
@@ -104,7 +116,11 @@ def interpolate_log_prob_sentence(sentence, lambda1, lambda2, lambda3, unigram_d
         temp1_prob = lambda1*float(unigram_dict['<s>'])
         if words_in_sentence[1] in bigram_dict['<s>']:
             temp2_prob = (lambda2 + lambda3)*float(bigram_dict['<s>'][words_in_sentence[1]])
-    temp_prob = temp1_prob + temp2_prob
+    # fixing log math domain error:
+    if temp1_prob + temp2_prob > 0:
+        temp_prob = log10(temp1_prob + temp2_prob)
+    else:
+        temp_prob = 0
 
     for i in trigrams_list:
         temp_lamdba1_prob = 0
@@ -116,7 +132,9 @@ def interpolate_log_prob_sentence(sentence, lambda1, lambda2, lambda3, unigram_d
                 temp_lamdba2_prob = float(bigram_dict[i[1]][i[2]])
                 if i[0] in unigram_dict and '{0} {1}'.format(i[0],i[1]) in trigram_dict and i[2] in trigram_dict['{0} {1}'.format(i[0],i[1])]:
                     temp_lamdba3_prob = float(trigram_dict['{0} {1}'.format(i[0],i[1])][i[2]])
-        temp_prob *= (temp_lamdba1_prob + temp_lamdba2_prob + temp_lamdba3_prob)
+        # fixing log math domain error with negative value:
+        if temp_lamdba1_prob + temp_lamdba2_prob + temp_lamdba3_prob > 0:
+            temp_prob += log10(temp_lamdba1_prob + temp_lamdba2_prob + temp_lamdba3_prob)
     return temp_prob
     
 def helper_for_unknown_words(sentence, dct):
@@ -129,11 +147,18 @@ def helper_for_unknown_words(sentence, dct):
             num += 1
     return num
 
+# write to output file according to Justin's format
+with open(output_file, 'w') as out_file:
+    out_file.write('Lambda1(Unigram Weight) Lambda2(Bigram Weight) Lambda3(Trigram Weight) Perplexity \n')
+    write_format = '{0} {1} {2} {3} \n'.format(lambda1,lambda2,lambda3,calculate_perplexity(lambda1,lambda2,lambda3,test_file))
+    out_file.write(write_format)
+'''
 if __name__ == '__main__':
     # print(trigrams_makeup(['a','b']))
-    # sentence = 'There are not many people—and as it is desirable that a story-teller and a story-reader should establish a mutual understanding as soon as possible , I beg it to be noticed that I confine this observation neither to young people nor to little people , but extend it to all conditions of people : little and big , young and old : yet growing up , or already growing down again—there are not , I say , many people who would care to sleep in a church .'
-    # sentence1 = 'But it applies to Night .'
+    #sentence = 'There are not many people—and as it is desirable that a story-teller and a story-reader should establish a mutual understanding as soon as possible , I beg it to be noticed that I confine this observation neither to young people nor to little people , but extend it to all conditions of people : little and big , young and old : yet growing up , or already growing down again—there are not , I say , many people who would care to sleep in a church .'
+    #sentence1 = 'But it applies to Night .'
     #print(interpolate_log_prob_sentence(sentence1.lower(), 0.1,0.1,0.8))
     #print(helper_for_unknown_words(sentence, unigram_dict))
-    print(calculate_perplexity(0.1,0.1,0.8,test_file='dickens_test.txt'))
+    print(calculate_perplexity(0.6,0.3,0.1,test_file='dickens_test.txt'))
+'''
     

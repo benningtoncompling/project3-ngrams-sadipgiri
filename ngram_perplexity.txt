@@ -1,0 +1,2 @@
+Lambda1(Unigram Weight) Lambda2(Bigram Weight) Lambda3(Trigram Weight) Perplexity 
+1.0 0.0 0.0 44.53806268590845 
